@@ -5,6 +5,7 @@ import numpy as np
 #restr = restricoes a que a funçao objetivo esta sujeita
 #b = lado direito das equações de restrição
 
+#FALTA MULTIPLICAR C POR -1
 restr = []
 n, m = map(int, input().split())
 obj = list(map(int, input().split()))
@@ -13,12 +14,24 @@ for i in range(n):
 	eq = list(map(int, input().split()))
 	restr.append(eq)
 
-## Funções auxiliares
-def verify_cost_funct(N, c):
-	for j in N:
-		if(c[j] > 0):
-			return True
-	return False
+##Auxiliary functions
+def verify_cost_funct(c):
+	#simplex (tableau) stopping condition
+	if np.min(c) >= 0:
+		return False
+	else:
+		return True
+
+def standard_form(A, b, c):
+	n = A.shape[0]
+	m = A.shape[1]
+	eye = np.eye(n)
+	zeros = np.zeros(n)
+	
+	c = np.append(c, zeros)
+	A = np.append(A, eye, axis=1)
+
+	return (A, b, c)
 
 #encontra os indices das colunas que pertencem a base 
 def basis_index(matrix):
@@ -35,77 +48,47 @@ def basis_index(matrix):
 					break
 	return index
 
-#INPUT: l = index of the leaving variable x_l
-#		e = index of the entering variable x_e
-#OUTPUT: the tuple representing the new slack form
-def pivot(N, B, A, b, c, v, l, e):
-	#Coeff. of the eq. for the new basic variable x_e
-	b_e = b[l]/A[l][e]
-	for j in range(N):
-		if(N[j] != e):
-			A[e][j] = A[l][j]/A[l][e]
-	A[e][l] = 1/A[l][e]
 
-	#Coeff. of the remaining constraints
-	for i in range(B):
-		if(B[i] != l):
-			b[i] -= A[i][e]*A[e][j]
-			for j in range(N):
-				if(N[j] != e):
-					A[i][j] -= A[i][e]*A[e][j]
-			A[i][l] = -A[i][e]*A[e][j]
+def simplex(N, B, A, b, c):
+	#tableau stopping condition: if all c[j] >= 0, stop.
+	while verify_cost_funct(c):
+		max_c = np.NINF
+		max_indx = -1
+		#select entering variable, index = k
+		for k in N:
+			if c[k] > max_c:
+				max_indx = k
+				max_c = c[k]
+		k = max_indx
 
-	#Objective function
-	v += v + c[e]*b[e]
-	for j in range(N):
-		if(N[j] != e):
-			c[j] -= c[e]*A[e][j]
-	c[l] = -c[e]*A[e][l]
-	
-	index_e_in_n, = np.where(N == e)
-	index_l_in_b, = np.where(B == l)
-	N[index_e_in_n] = l
-	B[index_l_in_b] = e
-	
-	return (N, B, A, b, c, v)
-
-#INPUT: A = restr. matrix, b = value of each equation, c = objective function coeff.
-#OUTPUT (N, B, A, b, c, v): N = non-basic indexes, B = basic indexes,				
-#							A = restriction matrix, b = value of each equation		
-#							c = objective function coeff., v = objective value 		
-
-def initialize_simplex(A, b, c):
-
-	return (N, B, A, b, c, v)
-
-
-def simplex(A, b, c):
-	(N, B, A, b, c, v) = initialize_simplex(A, b, c)
-	delta = np.zeros(A.shape[1])
-	#stopping condition: if all the variables not in the base <= 0
-	while verify_cost_funct(N, c):
-		max_value = np.NINF
-		e = -1
-		#select the entering variable
-		for i in N:
-			if(c[i] > max_value):
-				max_value = c[i]
-				e = i
+		#if all variables on the column <= 0, LP is unbounded
+		if(np.max(A[:][k]) <= 0):
+			return 'ilimitada'
 		
-		for i in B:
-			if A[i][e] > 0:
-				delta[i] = b[i]/A[i][e]
-			else
-				delta[i] = np.inf
-		
-		min_value = np.inf
-		l = -1
-		#select leaving variable
-		for i in B:
-			if(delta[i] < min_value):
-				min_value = delta[i]
-				l = i
-		if(delta[l] == np.inf):
-			return "ilimitada" #calcular certificado de ilimitada
-		else:
-			(N, B, A, b, c, v) = pivot(N, B, A, b, c, v, l, e)
+		#pivot minimizes b[i]/A[i][k], where k is the index of the entering variable
+		#pivot index = A[i][k]
+		for i in range(len(b)):
+			min_val = np.inf
+			min_indx = -1
+			if A[i][k] > 0:
+				if b[i]/A[i][k] < min_val:
+					min_val = b[i]/A[i][k]
+					min_indx = i
+		i = min_indx
+
+		#leaving variable index = leaving_index
+		# B - leaving_index + k
+		# N - k + leaving_index
+		leaving_index = -1
+		for e in range(A.shape[1]):
+			if(A[i][e] == 1 and e != k):
+				is_basis = True
+				for l in range(A.shape[0]):
+					if(A[l][e] != 0 and l != i):
+						is_basis = False
+				if(is_basis == True):
+					leaving_index = l
+					break
+
+		#set pivot to 1
+		A[i][:] = A[i][:] / A[i][k]
