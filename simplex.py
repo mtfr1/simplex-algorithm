@@ -1,5 +1,5 @@
 import numpy as np
-#np.set_printoptions(formatter={"float_kind": lambda x: "%g" % x})
+np.set_printoptions(formatter={"float_kind": lambda x: "%g" % x})
 
 ##reading input
 #obj = função objetivo a ser maximizada
@@ -42,7 +42,7 @@ def basis_index(matrix):
 					break
 	return index
 
-#Pre-processing functions
+##Pre-processing functions
 def standard_form(A, b, c):
 	n = A.shape[0]
 	m = A.shape[1]
@@ -110,7 +110,7 @@ def auxiliar(A, b, certf):
 				certf[j][:] += (-A[j][k] * certf[i][:])
 				A[j][:] += (-A[j][k] * A[i][:])
 				b[j] += (-A[j][k] * b[i])
-		print(i)
+
 		c_certf += (-c[k] * certf[i][:])
 		c += (-c[k] * A[i][:])
 		v += (-c[k] * b[i])
@@ -140,7 +140,18 @@ def simplex(A, b, c):
 		#if all variables on the column <= 0, LP is unbounded
 		if(np.max(A[:,k]) <= 0):
 			status = 'ilimitada'
-			return status, "TODO", "TODO"
+			solution = np.zeros(A.shape[1])
+			c_certf = np.zeros(A.shape[1])
+			c_certf[k] = 1
+			
+			basis = basis_index(A)
+			for j in basis:
+				for i in range(A.shape[0]):
+					if A[i][j] == 1:
+						c_certf[j] = -A[i][k]
+						solution[j] = b[i]
+
+			return status, solution, c_certf
 
 		#pivot minimizes b[i]/A[i][k], where k is the index of the entering variable
 		#pivot index = A[i][k]
@@ -189,8 +200,8 @@ if status == 'otima':
 	v = np.sum(original_c * solution[:m])
 	print(v)
 	print(solution[:m])
+	print(certificado[:m])
 
 elif status == 'ilimitada':
-	print("todo")
-
-print(certificado)
+	print(solution[:m])
+	print(certificado[:m])
