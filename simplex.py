@@ -1,28 +1,5 @@
 import numpy as np
 from fractions import Fraction
-np.set_printoptions(formatter={"float_kind": lambda x: "%g" % x})
-
-##reading input
-#obj = função objetivo a ser maximizada
-#restr = restricoes a que a funçao objetivo esta sujeita
-#b = lado direito das equações de restrição
-
-A = []
-n, m = map(int, input().split())
-c = list(map(int, input().split()))
-
-for i in range(n):
-	eq = list(map(int, input().split()))
-	A.append(eq)
-
-A = np.array(A)
-b = A[:,-1]
-A = A[:,:-1]
-c = np.array(c) * -1
-
-A = A + Fraction()
-b = b + Fraction()
-c = c + Fraction()
 
 ##Auxiliary functions
 def verify_cost_funct(c):
@@ -37,7 +14,7 @@ def basis_index(matrix):
 	index = []
 	for i in range(len(matrix)):
 		for j in range(len(matrix[0])):
-			if(matrix[i][j] == 1): #possivel coluna pertencente a base
+			if(matrix[i][j] == 1): #may be a basis column
 				is_basis = True
 				for k in range(len(matrix)):
 					if(matrix[k][j] != 0 and k != i):
@@ -46,25 +23,17 @@ def basis_index(matrix):
 					index.append(j)
 					break
 	return index
-def round_array(c):
-	for i in range(len(c)):
-		if(abs(0 - c[i]) < 1e-6):
-			c[i] = 0
-	return c
 
-def printa_bonitim(A):
-	for line in A:
-		fline = list(map(float, line))
-		print(fline)
-def find_basis(A, b, c, n, m):
-    #Append b to A
+#returns the solution, according to the basis
+def x_solution(A, b, c, n, m):
+    #append b to A
     A = np.concatenate((A,b.reshape((-1,1))),axis = 1)
    
     base_list = []
     for i in range(m):
         cont = 0
         p_j = 0;
-        if(c[i]==0):
+        if(c[i] == 0):
             for j in range(n):
                 if (A[j][i] == 1):
                     p_j = j
@@ -76,6 +45,7 @@ def find_basis(A, b, c, n, m):
     return base_list
 
 ##Pre-processing functions
+
 def standard_form(A, b, c):
 	n = A.shape[0]
 	m = A.shape[1]
@@ -98,6 +68,8 @@ def negative_b(A, b, certf):
 	return A, b, negative, certf
 
 
+##Main functions
+
 #used in case theres no trivial basis in A
 def auxiliar(A, b, certf):
 	n = A.shape[0] #number of restrictions
@@ -118,8 +90,7 @@ def auxiliar(A, b, certf):
 		v += -b[i]
 		c += -A[i][:]
 		c_certf += -certf[i][:]
-	#CORRETO ATE AQUI
-	
+
 	#execute the same steps as the simplex
 	while verify_cost_funct(c):
 		k = np.argmin(c)
@@ -167,10 +138,9 @@ def simplex(A, b, c):
 	if status == "inviavel":
 		return status, "no solution", c_certf, v
 
-	
 	#if all c[j] >= 0, stop.
 	while verify_cost_funct(c):
-		#passou aqui quer dizer que existe pelo menos um negativo, pegar o menor
+		#getting the index of the lowest value
 		k = np.argmin(c)
 
 		#if all variables on the column <= 0, LP is unbounded
@@ -205,8 +175,7 @@ def simplex(A, b, c):
 		b[i] = b[i] / A[i][k]
 		A[i][:] = A[i][:] / A[i][k]
 
-		#LINHA DO PIVOT = A[i][:]
-		#SUBTRAIR DAS OUTRAS LINHAS, A LINHA DO PIVOT
+		#performing Gauss operations on the lines relative to the pivot
 		for j in range(A.shape[0]):
 			if j != i:
 				certf[j][:] += (-A[j][k] * certf[i][:])
@@ -217,38 +186,42 @@ def simplex(A, b, c):
 		c_certf += (-c[k] * certf[i][:])
 		c += (-c[k] * A[i][:])
 	
-	# B = basis_index(A)
-	# solution = (np.zeros(A.shape[1]-n, dtype='int')) + Fraction()
-	
-	# # for i in range(len(b)):
-	# #  	solution[B[i]] = b[i]
-	# #  	# if c[i] == 0 and i < len(b):
-	# #  	# 	solution[i] = b[i]
-	# #  	# else:
-	# #  	# 	solution[i] = 0
-
-	# # for j in range(len(c)):
-	# # 	if c[j] == 0:
-	# # 		n_zero = 0
-	# # 		n_um = 0
-	# # 		for i in range(A.shape[0]):
-	# # 			if A[i][j] == 1:
-	# # 				n_um += 1
-	# # 				index = j
-	# # 			if A[i][j] == 0:
-	# # 				n_zero += 1
-	# # 		if n_zero == A.shape[0]-1 and n_um == 1:
-	# # 			solution[j] = b[index]
-	# # print(solution)
-	solution = find_basis(A, b, c, n, m)
+	solution = x_solution(A, b, c, n, m)
 
 	return status, solution, c_certf, v
+
+##INPUT:
+#c = coeffs. of the objective function to be maximized
+#A = restriction matrix
+#b = right side of the restrictions
+
+A = []
+n, m = map(int, input().split())
+c = list(map(int, input().split()))
+
+for i in range(n):
+	eq = list(map(int, input().split()))
+	A.append(eq)
+
+A = np.array(A)
+b = A[:,-1]
+A = A[:,:-1]
+c = np.array(c) * -1
+
+A = A + Fraction()
+b = b + Fraction()
+c = c + Fraction()
 
 n, m = A.shape
 original_c = c.copy() * -1
 A, b, c = standard_form(A, b, c)
 
 status, solution, certificado, objective = simplex(A, b, c)
+
+##OUTPUT:
+#STATUS (Optimal, Unbounded, Infeasible)
+#X SOLUTION
+#CERTIFICATE
 
 print(status)
 
