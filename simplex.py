@@ -56,6 +56,24 @@ def printa_bonitim(A):
 	for line in A:
 		fline = list(map(float, line))
 		print(fline)
+def find_basis(A, b, c, n, m):
+    #Append b to A
+    A = np.concatenate((A,b.reshape((-1,1))),axis = 1)
+   
+    base_list = []
+    for i in range(m):
+        cont = 0
+        p_j = 0;
+        if(c[i]==0):
+            for j in range(n):
+                if (A[j][i] == 1):
+                    p_j = j
+                    cont += 1
+        if(cont != 1):
+            base_list.append(0)
+        if(cont == 1):
+            base_list.append(b[p_j])
+    return base_list
 
 ##Pre-processing functions
 def standard_form(A, b, c):
@@ -199,13 +217,30 @@ def simplex(A, b, c):
 		c_certf += (-c[k] * certf[i][:])
 		c += (-c[k] * A[i][:])
 	
-	B = basis_index(A)
-	solution = (np.zeros(A.shape[0], dtype='int')) + Fraction()
-	for i in range(A.shape[0]):
-		if i in B:
-			solution[i] = b[i]
-		else:
-			solution[i] = 0
+	# B = basis_index(A)
+	# solution = (np.zeros(A.shape[1]-n, dtype='int')) + Fraction()
+	
+	# # for i in range(len(b)):
+	# #  	solution[B[i]] = b[i]
+	# #  	# if c[i] == 0 and i < len(b):
+	# #  	# 	solution[i] = b[i]
+	# #  	# else:
+	# #  	# 	solution[i] = 0
+
+	# # for j in range(len(c)):
+	# # 	if c[j] == 0:
+	# # 		n_zero = 0
+	# # 		n_um = 0
+	# # 		for i in range(A.shape[0]):
+	# # 			if A[i][j] == 1:
+	# # 				n_um += 1
+	# # 				index = j
+	# # 			if A[i][j] == 0:
+	# # 				n_zero += 1
+	# # 		if n_zero == A.shape[0]-1 and n_um == 1:
+	# # 			solution[j] = b[index]
+	# # print(solution)
+	solution = find_basis(A, b, c, n, m)
 
 	return status, solution, c_certf, v
 
@@ -218,15 +253,13 @@ status, solution, certificado, objective = simplex(A, b, c)
 print(status)
 
 if status == 'otima':
-	#v = np.sum(original_c * solution[:m])
-	print(objective)
+	print(float(objective))
+	solution = [float(x) for x in solution]
 	
-	solution_list = solution.tolist()
-	solution_list = [float(x) for x in solution_list]
 	certificado_list = certificado.tolist()
 	certificado_list = [float(x) for x in certificado_list]
 	
-	print(solution_list[:m])
+	print(solution)
 	print(certificado_list[:m])
 
 elif status == 'ilimitada':
@@ -235,8 +268,8 @@ elif status == 'ilimitada':
 	certificado_list = certificado.tolist()
 	certificado_list = [float(x) for x in certificado_list]
 	
-	print(solution_list)
-	print(certificado_list)
+	print(solution_list[:m])
+	print(certificado_list[:m])
 
 else:
 	certificado_list = certificado.tolist()
