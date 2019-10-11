@@ -1,4 +1,5 @@
 import numpy as np
+from fractions import Fraction
 np.set_printoptions(formatter={"float_kind": lambda x: "%g" % x})
 
 ##reading input
@@ -14,10 +15,14 @@ for i in range(n):
 	eq = list(map(int, input().split()))
 	A.append(eq)
 
-A = np.array(A, dtype=np.float64)
+A = np.array(A)
 b = A[:,-1]
 A = A[:,:-1]
-c = np.array(c, dtype=np.float64) * -1
+c = np.array(c) * -1
+
+A = A + Fraction()
+b = b + Fraction()
+c = c + Fraction()
 
 ##Auxiliary functions
 def verify_cost_funct(c):
@@ -41,13 +46,23 @@ def basis_index(matrix):
 					index.append(j)
 					break
 	return index
+def round_array(c):
+	for i in range(len(c)):
+		if(abs(0 - c[i]) < 1e-6):
+			c[i] = 0
+	return c
+
+def printa_bonitim(A):
+	for line in A:
+		fline = list(map(float, line))
+		print(fline)
 
 ##Pre-processing functions
 def standard_form(A, b, c):
 	n = A.shape[0]
 	m = A.shape[1]
-	eye = np.eye(n)
-	zeros = np.zeros(n)
+	eye = (np.eye(n, dtype='int')) + Fraction()
+	zeros = (np.zeros(n, dtype='int')) + Fraction()
 	
 	c = np.append(c, zeros)
 	A = np.append(A, eye, axis=1)
@@ -69,26 +84,25 @@ def negative_b(A, b, certf):
 def auxiliar(A, b, certf):
 	n = A.shape[0] #number of restrictions
 	m = A.shape[1] #number of variables
-	v = 0 #objective value
+	v = Fraction(0) #objective value
 	
-	c_certf = np.zeros(n)
-	eye = np.eye(n)
-	ones = np.ones(n)
-	
+	c_certf = (np.zeros(A.shape[0], dtype='int')) + Fraction()
+	eye = (np.eye(n, dtype='int')) + Fraction()
+	ones = (np.ones(n, dtype='int')) + Fraction()
+
 	A = np.append(A, eye, axis=1)
-	c = np.zeros(m)
+
+	c = (np.zeros(m, dtype='int'))+ Fraction()
 	c = np.append(c, ones)
-	
+
 	#transforming the auxiliary program to the canonical form
-	for i in range(A.shape[1]-m):
-		# c += -c[i+m]*A[i][:]
-		# v += -c[i+m]*b[i]
-		# c_certf += -c[i+m]*certf[i][:]
-		c += -A[i][:]
+	for i in range(A.shape[0]):
 		v += -b[i]
+		c += -A[i][:]
 		c_certf += -certf[i][:]
+	#CORRETO ATE AQUI
 	
-	#now, execute the same steps as the simplex
+	#execute the same steps as the simplex
 	while verify_cost_funct(c):
 		k = np.argmin(c)
 
@@ -101,37 +115,41 @@ def auxiliar(A, b, certf):
 					min_indx = i
 		i = min_indx
 
+
 		certf[i][:] = certf[i][:] / A[i][k]
-		A[i][:] = A[i][:] / A[i][k]
 		b[i] = b[i] / A[i][k]
+		A[i][:] = A[i][:] / A[i][k]
+		
+		
+		for l in range(A.shape[0]):
+			if l != i:
+				certf[l][:] += (-A[l][k] * certf[i][:])
+				b[l] += (-A[l][k] * b[i])
+				A[l][:] += (-A[l][k] * A[i][:])
 
-		for j in range(A.shape[0]):
-			if j != i:
-				certf[j][:] += (-A[j][k] * certf[i][:])
-				A[j][:] += (-A[j][k] * A[i][:])
-				b[j] += (-A[j][k] * b[i])
-
+		v += (-c[k] * b[i])
 		c_certf += (-c[k] * certf[i][:])
 		c += (-c[k] * A[i][:])
-		v += (-c[k] * b[i])
-	
+
 	if(v == 0):
 		return "otima", A[:,:m], b, c_certf, certf
 	else:
 		return "inviavel", A[:,:m], b, c_certf, certf
 
 def simplex(A, b, c):
-	c_certf = np.zeros(A.shape[0])
-	certf = np.eye(A.shape[0])
+	c_certf = (np.zeros(A.shape[0], dtype='int')) + Fraction()
+	certf = (np.eye(A.shape[0], dtype='int')) + Fraction()
 	status = "otima"
-
+	v = Fraction(0)
+	
 	A, b, negative, certf = negative_b(A, b, certf)
 	if negative:
 		status, A, b, c_certf, certf = auxiliar(A, b, certf)
 	
 	if status == "inviavel":
-		return status, "no solution", c_certf
+		return status, "no solution", c_certf, v
 
+	
 	#if all c[j] >= 0, stop.
 	while verify_cost_funct(c):
 		#passou aqui quer dizer que existe pelo menos um negativo, pegar o menor
@@ -140,8 +158,8 @@ def simplex(A, b, c):
 		#if all variables on the column <= 0, LP is unbounded
 		if(np.max(A[:,k]) <= 0):
 			status = 'ilimitada'
-			solution = np.zeros(A.shape[1])
-			c_certf = np.zeros(A.shape[1])
+			solution = (np.zeros(A.shape[1], dtype='int')) + Fraction()
+			c_certf = (np.zeros(A.shape[1], dtype='int')) + Fraction()
 			c_certf[k] = 1
 			
 			basis = basis_index(A)
@@ -151,7 +169,7 @@ def simplex(A, b, c):
 						c_certf[j] = -A[i][k]
 						solution[j] = b[i]
 
-			return status, solution, c_certf
+			return status, solution, c_certf, v
 
 		#pivot minimizes b[i]/A[i][k], where k is the index of the entering variable
 		#pivot index = A[i][k]
@@ -166,42 +184,61 @@ def simplex(A, b, c):
 
 		#set pivot to 1
 		certf[i][:] = certf[i][:] / A[i][k]
-		A[i][:] = A[i][:] / A[i][k]
 		b[i] = b[i] / A[i][k]
+		A[i][:] = A[i][:] / A[i][k]
 
 		#LINHA DO PIVOT = A[i][:]
 		#SUBTRAIR DAS OUTRAS LINHAS, A LINHA DO PIVOT
 		for j in range(A.shape[0]):
 			if j != i:
 				certf[j][:] += (-A[j][k] * certf[i][:])
-				A[j][:] += (-A[j][k] * A[i][:])
 				b[j] += (-A[j][k] * b[i])	
+				A[j][:] += (-A[j][k] * A[i][:])
+
+		v += (-c[k] * b[i])
 		c_certf += (-c[k] * certf[i][:])
 		c += (-c[k] * A[i][:])
 	
 	B = basis_index(A)
-	solution = np.zeros(A.shape[0])
+	solution = (np.zeros(A.shape[0], dtype='int')) + Fraction()
 	for i in range(A.shape[0]):
 		if i in B:
 			solution[i] = b[i]
 		else:
 			solution[i] = 0
 
-	return status, solution, c_certf
+	return status, solution, c_certf, v
 
-
+n, m = A.shape
 original_c = c.copy() * -1
 A, b, c = standard_form(A, b, c)
 
-status, solution, certificado = simplex(A, b, c)
+status, solution, certificado, objective = simplex(A, b, c)
 
 print(status)
+
 if status == 'otima':
-	v = np.sum(original_c * solution[:m])
-	print(v)
-	print(solution[:m])
-	print(certificado[:m])
+	#v = np.sum(original_c * solution[:m])
+	print(objective)
+	
+	solution_list = solution.tolist()
+	solution_list = [float(x) for x in solution_list]
+	certificado_list = certificado.tolist()
+	certificado_list = [float(x) for x in certificado_list]
+	
+	print(solution_list[:m])
+	print(certificado_list[:m])
 
 elif status == 'ilimitada':
-	print(solution[:m])
-	print(certificado[:m])
+	solution_list = solution.tolist()
+	solution_list = [float(x) for x in solution_list]
+	certificado_list = certificado.tolist()
+	certificado_list = [float(x) for x in certificado_list]
+	
+	print(solution_list)
+	print(certificado_list)
+
+else:
+	certificado_list = certificado.tolist()
+	certificado_list = [float(x) for x in certificado_list]
+	print(certificado_list)
