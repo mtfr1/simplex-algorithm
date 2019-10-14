@@ -44,6 +44,16 @@ def x_solution(A, b, c, n, m):
             base_list.append(b[p_j])
     return base_list
 
+#returns the index of the negative number closer to zero
+def least_negative(c):
+	val = np.NINF
+	index = np.NINF
+	for i in range(len(c)):
+		if(c[i] < 0 and c[i] > val):
+			val = c[i]
+			index = i
+	return index
+
 ##Pre-processing functions
 
 def standard_form(A, b, c):
@@ -67,7 +77,6 @@ def negative_b(A, b, certf):
 			certf[i][:] = -1 * certf[i][:]
 	return A, b, negative, certf
 
-
 ##Main functions
 
 #used in case theres no trivial basis in A
@@ -82,7 +91,7 @@ def auxiliar(A, b, certf):
 
 	A = np.append(A, eye, axis=1)
 
-	c = (np.zeros(m, dtype='int'))+ Fraction()
+	c = (np.zeros(m, dtype='int')) + Fraction()
 	c = np.append(c, ones)
 
 	#transforming the auxiliary program to the canonical form
@@ -142,6 +151,7 @@ def simplex(A, b, c):
 	while verify_cost_funct(c):
 		#getting the index of the lowest value
 		k = np.argmin(c)
+		#k = least_negative(c)
 
 		#if all variables on the column <= 0, LP is unbounded
 		if(np.max(A[:,k]) <= 0):
@@ -228,10 +238,8 @@ print(status)
 if status == 'otima':
 	print(float(objective))
 	solution = [float(x) for x in solution]
-	
 	certificado_list = certificado.tolist()
 	certificado_list = [float(x) for x in certificado_list]
-	
 	print(solution)
 	print(certificado_list[:m])
 
