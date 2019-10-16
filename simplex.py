@@ -258,24 +258,12 @@ print(status)
 
 if status == 'otima':
 	print(float(objective))
-	solution = [float(x) for x in solution]
-	certificado_list = certificado.tolist()
-	certificado_list = [round(float(x), 7) for x in certificado_list]
-	
-	print(solution)
-	print(certificado_list[:m])
+	print(*[round(float(x), 7) for x in solution], sep=' ')
+	print(*[round(float(x), 7) for x in certificado], sep=' ')
 
 elif status == 'ilimitada':
-	solution_list = solution.tolist()
-	solution_list = [round(float(x), 7) for x in solution_list]
-	
-	certificado_list = certificado.tolist()
-	certificado_list = [round(float(x), 7) for x in certificado_list]
-	
-	print(solution_list[:m])
-	print(certificado_list[:m])
+	print(*[round(float(x), 7) for x in solution[:m]], sep=' ')
+	print(*[round(float(x), 7) for x in certificado[:m]], sep=' ')
 
 else:
-	certificado_list = certificado.tolist()
-	certificado_list = [round(float(x), 7) for x in certificado_list]
-	print(certificado_list)
+	print(*[round(float(x), 7) for x in certificado], sep=' ')
