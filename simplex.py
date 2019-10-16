@@ -32,7 +32,7 @@ def x_solution(A, b, c, n, m):
     base_list = []
     for i in range(m):
         cont = 0
-        p_j = 0;
+        p_j = 0
         if(c[i] == 0):
             for j in range(n):
                 if (A[j][i] == 1):
@@ -43,16 +43,6 @@ def x_solution(A, b, c, n, m):
         if(cont == 1):
             base_list.append(b[p_j])
     return base_list
-
-#returns the index of the negative number closer to zero
-def least_negative(c):
-	val = np.NINF
-	index = np.NINF
-	for i in range(len(c)):
-		if(c[i] < 0 and c[i] > val):
-			val = c[i]
-			index = i
-	return index
 
 ##Pre-processing functions
 
@@ -80,7 +70,7 @@ def negative_b(A, b, certf):
 ##Main functions
 
 #used in case theres no trivial basis in A
-def auxiliar(A, b, certf):
+def auxiliar(A, b, original_c, certf):
 	n = A.shape[0] #number of restrictions
 	m = A.shape[1] #number of variables
 	v = Fraction(0) #objective value
@@ -130,9 +120,40 @@ def auxiliar(A, b, certf):
 		c += (-c[k] * A[i][:])
 
 	if(v == 0):
-		return "otima", A[:,:m], b, c_certf, certf
+		A = A[:,:m]
+		base_check = {}
+		base_row = {}
+		one_found = {}
+		
+		# finding the basis
+		for i in range(n):
+		    for j in range(m):
+		        if j not in base_check:
+		            base_check[j] = 0
+		            one_found[j] =  False
+		        if abs(A[i][j]) == Fraction(0):
+		            pass
+		        elif A[i][j] == Fraction(1) and not one_found.get(j):
+		            base_row[j] = i
+		            base_check[j] -= 1
+		            one_found[j] = True    
+		        else:
+		            base_check[j] += abs(A[i][j])
+
+		# canonical basis
+		for i in range(m):
+			if base_check[i] == -1:
+				r = base_row.get(i)
+				d = original_c[i]
+		        
+				v -= d * b[r]
+				c_certf -= d * certf[r,:]
+				original_c -= d * A[r,:]
+
+		return "otima", A, b, original_c, v, c_certf, certf
+	
 	else:
-		return "inviavel", A[:,:m], b, c_certf, certf
+		return "inviavel", A[:,:m], b, c, v, c_certf, certf
 
 def simplex(A, b, c):
 	c_certf = (np.zeros(A.shape[0], dtype='int')) + Fraction()
@@ -142,7 +163,7 @@ def simplex(A, b, c):
 	
 	A, b, negative, certf = negative_b(A, b, certf)
 	if negative:
-		status, A, b, c_certf, certf = auxiliar(A, b, certf)
+		status, A, b, c, v, c_certf, certf = auxiliar(A, b, c, certf)
 	
 	if status == "inviavel":
 		return status, "no solution", c_certf, v
@@ -151,7 +172,6 @@ def simplex(A, b, c):
 	while verify_cost_funct(c):
 		#getting the index of the lowest value
 		k = np.argmin(c)
-		#k = least_negative(c)
 
 		#if all variables on the column <= 0, LP is unbounded
 		if(np.max(A[:,k]) <= 0):
@@ -240,12 +260,14 @@ if status == 'otima':
 	solution = [float(x) for x in solution]
 	certificado_list = certificado.tolist()
 	certificado_list = [float(x) for x in certificado_list]
+	
 	print(solution)
 	print(certificado_list[:m])
 
 elif status == 'ilimitada':
 	solution_list = solution.tolist()
 	solution_list = [float(x) for x in solution_list]
+	
 	certificado_list = certificado.tolist()
 	certificado_list = [float(x) for x in certificado_list]
 	
