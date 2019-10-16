@@ -2,6 +2,7 @@ import numpy as np
 from fractions import Fraction
 
 ##Auxiliary functions
+
 def verify_cost_funct(c):
 	#simplex (tableau) stopping condition
 	if np.min(c) >= 0:
@@ -121,29 +122,29 @@ def auxiliar(A, b, original_c, certf):
 
 	if(v == 0):
 		A = A[:,:m]
-		base_check = {}
-		base_row = {}
+		basis_check = {}
+		basis_row = {}
 		one_found = {}
 		
-		# finding the basis
+		#finding the basis
 		for i in range(n):
 		    for j in range(m):
-		        if j not in base_check:
-		            base_check[j] = 0
+		        if j not in basis_check:
+		            basis_check[j] = 0
 		            one_found[j] =  False
 		        if abs(A[i][j]) == Fraction(0):
 		            pass
 		        elif A[i][j] == Fraction(1) and not one_found.get(j):
-		            base_row[j] = i
-		            base_check[j] -= 1
+		            basis_row[j] = i
+		            basis_check[j] -= 1
 		            one_found[j] = True    
 		        else:
-		            base_check[j] += abs(A[i][j])
+		            basis_check[j] += abs(A[i][j])
 
-		# canonical basis
+		#canonical basis
 		for i in range(m):
-			if base_check[i] == -1:
-				r = base_row.get(i)
+			if basis_check[i] == -1:
+				r = basis_row.get(i)
 				d = original_c[i]
 		        
 				v -= d * b[r]
@@ -259,22 +260,22 @@ if status == 'otima':
 	print(float(objective))
 	solution = [float(x) for x in solution]
 	certificado_list = certificado.tolist()
-	certificado_list = [float(x) for x in certificado_list]
+	certificado_list = [round(float(x), 7) for x in certificado_list]
 	
 	print(solution)
 	print(certificado_list[:m])
 
 elif status == 'ilimitada':
 	solution_list = solution.tolist()
-	solution_list = [float(x) for x in solution_list]
+	solution_list = [round(float(x), 7) for x in solution_list]
 	
 	certificado_list = certificado.tolist()
-	certificado_list = [float(x) for x in certificado_list]
+	certificado_list = [round(float(x), 7) for x in certificado_list]
 	
 	print(solution_list[:m])
 	print(certificado_list[:m])
 
 else:
 	certificado_list = certificado.tolist()
-	certificado_list = [float(x) for x in certificado_list]
+	certificado_list = [round(float(x), 7) for x in certificado_list]
 	print(certificado_list)
